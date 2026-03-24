@@ -1,4 +1,4 @@
-"""Telegram-friendly formatting with dynamic sections and no repeated highlights."""
+"""Telegram-friendly formatting with stronger section hierarchy and explicit Reddit links."""
 
 from __future__ import annotations
 
@@ -38,53 +38,80 @@ def _item_marker(item: CollectedItem) -> str:
     has_rss = "rss" in item.raw_metadata
     has_reddit = "reddit" in item.raw_metadata
     if _is_reddit_primary_item(item):
-        return "🟥"
+        return "🔴"
     if has_rss and has_reddit:
         return "🟢"
     if has_reddit:
-        return "🔴"
+        return "🟠"
     return "⚪"
 
 
-def _source_label(item: CollectedItem) -> str:
+def _title_text(item: CollectedItem) -> str:
+    prefix = "[Reddit] " if _is_reddit_primary_item(item) else ""
+    return html.escape(truncate_text(f"{prefix}{item.title}", 100))
+
+
+def _source_text(item: CollectedItem) -> str:
     if _is_reddit_primary_item(item):
-        return html.escape(f"Link Reddit | {item.source_name.replace('r/', '/r/')}")
-    return html.escape(item.source_name.replace("r/", "Reddit /r/"))
+        return html.escape(f"Source: Reddit {item.source_name.replace('r/', '/r/')}")
+    return html.escape(f"Source: {item.source_name}")
 
 
-def _meta_label(item: CollectedItem) -> str:
-    labels: list[str] = []
+def _summary_text(item: CollectedItem) -> str:
+    return html.escape(truncate_text(item.summary, 135))
+
+
+def _reddit_stats_text(item: CollectedItem) -> str:
     reddit = item.raw_metadata.get("reddit")
-    if reddit and _is_reddit_primary_item(item):
-        labels.append(f"{reddit.get('score', 0)} up")
-        labels.append(f"{reddit.get('num_comments', 0)} comments")
-    if "rss" in item.raw_metadata:
-        labels.append("editorial")
-    if reddit and not _is_reddit_primary_item(item):
-        labels.append("discutido no Reddit")
-    return " | ".join(labels)
+    if not reddit or not _is_reddit_primary_item(item):
+        return ""
+    return f"Reddit: {reddit.get('score', 0)} up | {reddit.get('num_comments', 0)} comments"
+
+
+def _reddit_thread_text(item: CollectedItem) -> str:
+    reddit = item.raw_metadata.get("reddit")
+    if not reddit or _is_reddit_primary_item(item) or not item.discussion_url:
+        return ""
+    return f"Reddit thread: <a href=\"{html.escape(item.discussion_url)}\">open discussion</a>"
+
+
+def _editorial_text(item: CollectedItem) -> str:
+    return "Type: editorial" if "rss" in item.raw_metadata else ""
 
 
 def _item_block(item: CollectedItem, index: int) -> str:
-    title_prefix = "[Reddit] " if _is_reddit_primary_item(item) else ""
-    title = html.escape(truncate_text(f"{title_prefix}{item.title}", 100))
-    summary = html.escape(truncate_text(item.summary, 135))
-    line_1 = f"{index}. {_item_marker(item)} <a href=\"{html.escape(item.canonical_url)}\">{title}</a>"
-    details = []
+    lines = [
+        f"{index}. {_item_marker(item)} <a href=\"{html.escape(item.canonical_url)}\">{_title_text(item)}</a>"
+    ]
+    summary = _summary_text(item)
     if summary:
-        details.append(f"<i>{summary}</i>")
-    details.append(f"└ {_source_label(item)}")
-    meta = _meta_label(item)
-    if meta:
-        details[-1] = f"{details[-1]} | {html.escape(meta)}"
-    return "\n".join([line_1, *details])
+        lines.append(f"<i>({summary})</i>")
+    lines.append(f"└ {_source_text(item)}")
+
+    reddit_thread = _reddit_thread_text(item)
+    if reddit_thread:
+        lines.append(f"└ {reddit_thread}")
+
+    reddit_stats = _reddit_stats_text(item)
+    if reddit_stats:
+        lines.append(f"└ {html.escape(reddit_stats)}")
+
+    editorial = _editorial_text(item)
+    if editorial:
+        lines.append(f"└ {editorial}")
+
+    return "\n".join(lines)
+
+
+def _section_header(title: str, category: str) -> str:
+    emoji = SECTION_EMOJIS.get(category, "•")
+    return f"<b>{emoji} {html.escape(title.upper())}</b>"
 
 
 def _section(title: str, items: list[CollectedItem], category: str) -> str:
     if not items:
         return ""
-    emoji = SECTION_EMOJIS.get(category, "•")
-    lines = [f"<b>{emoji} {html.escape(title)}</b>"]
+    lines = [_section_header(title, category)]
     lines.extend(_item_block(item, index) for index, item in enumerate(items, start=1))
     return "\n\n".join(lines)
 
@@ -106,17 +133,23 @@ def _take_unique_items(
     return chosen
 
 
+def _reddit_section_candidates(items: list[CollectedItem]) -> list[CollectedItem]:
+    primary = [item for item in items if _is_reddit_primary_item(item)]
+    discussed = [
+        item
+        for item in items
+        if not _is_reddit_primary_item(item) and "reddit" in item.raw_metadata and item.discussion_url
+    ]
+    return primary + discussed
+
+
 def _build_sections(items: list[CollectedItem], ranking_config: RankingConfig) -> list[str]:
     sections: list[str] = []
     used_keys: set[str] = set()
 
     for category in ranking_config.section_order:
         if category == "reddit":
-            candidates = [
-                item
-                for item in items
-                if item.source_type == "reddit" or "reddit" in item.raw_metadata
-            ]
+            candidates = _reddit_section_candidates(items)
         elif category == "rss":
             candidates = [item for item in items if "rss" in item.raw_metadata]
         else:
@@ -124,7 +157,7 @@ def _build_sections(items: list[CollectedItem], ranking_config: RankingConfig) -
 
         unique_items = _take_unique_items(
             candidates,
-            ranking_config.section_limits.get(category, 3),
+            ranking_config.section_limits.get(category, 4),
             used_keys,
         )
         title = ranking_config.section_titles.get(category, category.replace("_", " ").title())
@@ -143,14 +176,14 @@ def format_digest_messages(
         return [
             (
                 f"<b>My Daily Briefing | {today}</b>\n"
-                "<i>Nenhum item relevante foi encontrado nas fontes configuradas hoje.</i>\n"
-                "O pipeline rodou normalmente e manteve os arquivos de auditoria."
+                "<i>No relevant items were found today.</i>\n"
+                "The pipeline still completed and saved the local audit artifacts."
             )
         ]
 
     header = (
-        f"<b>My Daily Briefing | {today}</b>\n"
-        "<i>Curadoria diaria por categoria. RSS e a base; Reddit entra apenas como enriquecimento opcional.</i>"
+        f"<b>My Daily Briefing</b>\n"
+        f"<i>{today} | RSS-first briefing with optional Reddit tracking</i>"
     )
     sections = [header, *_build_sections(items, ranking_config)]
     return split_messages(sections, ranking_config.telegram_message_limit)

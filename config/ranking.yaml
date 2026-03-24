@@ -35,10 +35,10 @@ section_titles:
   rss: Cobertura Editorial
 
 section_limits:
-  games: 3
-  gamedev: 3
-  ai: 3
-  finance: 3
-  tech: 3
-  reddit: 4
-  rss: 4
+  games: 5
+  gamedev: 5
+  ai: 5
+  finance: 5
+  tech: 5
+  reddit: 6
+  rss: 5

@@ -23,7 +23,7 @@ def test_empty_sources_generate_outputs(app_config, sources_config, ranking_conf
     assert (app_config.output_dir / "raw_rss_items.json").exists()
     assert (app_config.output_dir / "raw_reddit_items.json").exists()
     preview = (app_config.output_dir / "telegram_preview.txt").read_text(encoding="utf-8")
-    assert "Nenhum item relevante" in preview
+    assert "No relevant items were found today." in preview
 
 
 def test_empty_sources_ranked_output_is_empty(app_config, sources_config, ranking_config):
