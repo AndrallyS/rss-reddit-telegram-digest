@@ -455,9 +455,4 @@ Check:
 - whether the cron expression is correct
 - whether your desired time zone is still `UTC-03:00`
 
-## Suggested next steps
 
-- add more validated feeds per category
-- include keyword-based boosting and suppression
-- add lightweight archival storage for daily snapshots
-- build a simple monitoring or audit dashboard
