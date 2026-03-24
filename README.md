@@ -1,47 +1,47 @@
 # Resilient Daily Digest for Telegram
 
-Pipeline Python para montar e enviar um briefing diario ao Telegram com curadoria de:
+Python pipeline for building and sending a daily Telegram briefing with curated sources across:
 
 - Games
 - Game Dev
-- IA
-- Mercado
+- AI
+- Markets
 - Tech
 
-Arquitetura central:
+Core architecture:
 
-- RSS e a fonte principal
-- Reddit JSON publico e apenas enriquecimento opcional
-- Telegram e o canal final
-- GitHub Actions e a automacao diaria
+- RSS is the primary source layer
+- Public Reddit JSON is optional enrichment only
+- Telegram is the final delivery channel
+- GitHub Actions handles daily automation
 
-## Por que esta arquitetura
+## Why this architecture
 
-### RSS como base
+### RSS as the foundation
 
-RSS continua sendo a melhor camada primaria para esse projeto porque:
+RSS remains the best primary layer for this project because it is:
 
-- e mais previsivel
-- e facil de auditar
-- nao depende de OAuth
-- suporta bem automacao diaria
-- continua util mesmo se uma ou varias fontes falharem
+- more predictable
+- easy to audit
+- independent from OAuth
+- well suited for daily automation
+- still useful even if one or more sources fail
 
-### Reddit JSON como opcional
+### Reddit JSON as optional enrichment
 
-O Reddit JSON publico foi mantido como camada secundaria porque:
+Public Reddit JSON is treated as a secondary layer because:
 
-- nao e integracao oficialmente estavel para uso como fonte principal
-- pode responder 403, 429, HTML, timeout ou JSON invalido
-- pode mudar sem aviso
+- it is not an officially stable integration for primary ingestion
+- it may return `403`, `429`, HTML, timeouts, or invalid JSON
+- its structure may change without notice
 
-Por isso:
+Because of that:
 
-- `ENABLE_REDDIT` comeca desabilitado por padrao no exemplo
-- o workflow roda validacao antes do digest
-- se a validacao falhar, o pipeline segue so com RSS
+- `ENABLE_REDDIT` starts disabled by default in the example configuration
+- the workflow validates Reddit before using it operationally
+- if validation fails, the pipeline continues with RSS only
 
-## Categorias configuradas
+## Configured categories
 
 ### Games
 
@@ -61,22 +61,22 @@ Por isso:
 - DirectX Developer Blog
 - 80 Level
 
-### IA
+### AI
 
 - OpenAI News
-- Anthropic News
+- NVIDIA Blog
 - Hugging Face Blog
 - TechCrunch AI
 - The Verge AI
 - VentureBeat AI
 
-### Mercado
+### Markets
 
 - InfoMoney
 - Money Times
 - Brazil Journal
 - MarketWatch Top Stories
-- BLS Latest
+- SEC Press Releases
 - Federal Reserve Press
 
 ### Tech
@@ -89,7 +89,7 @@ Por isso:
 - InfoQ
 - Hacker News via HNRSS
 
-## Estrutura do projeto
+## Project structure
 
 ```text
 app/
@@ -126,58 +126,58 @@ output/
 logs/
 ```
 
-## Requisitos
+## Requirements
 
 - Python 3.11+
-- Windows PowerShell, CMD, Git Bash ou terminal equivalente
-- conta no GitHub
-- bot do Telegram e chat id
+- Windows PowerShell, CMD, Git Bash, or equivalent terminal
+- a GitHub account
+- a Telegram bot and chat ID
 
-## Configuracao local no Windows
+## Local setup on Windows
 
-### 1. Abra o PowerShell na pasta do projeto
+### 1. Open PowerShell in the project folder
 
-Exemplo:
+Example:
 
 ```powershell
 cd "C:\Users\Murph\OneDrive\Área de Trabalho\CODEX PROJECTS\rss-reddit-telegram-digest"
 ```
 
-### 2. Crie o ambiente virtual
+### 2. Create the virtual environment
 
 ```powershell
 py -3.11 -m venv .venv
 ```
 
-Se voce nao tiver o Python 3.11 especifico, use:
+If you do not have Python 3.11 specifically installed, use:
 
 ```powershell
 py -3 -m venv .venv
 ```
 
-### 3. Ative o ambiente virtual
+### 3. Activate the virtual environment
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 4. Instale as dependencias
+### 4. Install dependencies
 
 ```powershell
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 5. Configure o `.env`
+### 5. Configure `.env`
 
-Crie um arquivo `.env` a partir do `.env.example`.
+Create a `.env` file based on `.env.example`.
 
-Campos:
+Fields:
 
 ```env
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
-REDDIT_USER_AGENT=games-tech-digest/1.0 (+https://github.com/seu-usuario/seu-repo; contact: digest-admin)
+REDDIT_USER_AGENT=games-tech-digest/1.0 (+https://github.com/your-user/your-repo; contact: digest-admin)
 REQUEST_TIMEOUT_SECONDS=12
 ENABLE_REDDIT=true
 LOG_LEVEL=INFO
@@ -185,68 +185,70 @@ MAX_RETRIES=2
 BACKOFF_BASE_SECONDS=0.75
 ```
 
-Observacoes:
+Notes:
 
-- o `.env` nao vai para o Git
-- use um `REDDIT_USER_AGENT` descritivo
-- para GitHub Actions, esses valores vao para Secrets e nao para o repositorio
+- `.env` is local only and should never be committed
+- use a descriptive `REDDIT_USER_AGENT`
+- for GitHub Actions, these values belong in repository secrets, not in the repo itself
 
-## Como testar o Telegram
+## Testing Telegram
 
-Teste rapido:
+Quick test:
 
 ```powershell
 python scripts\send_test_telegram.py
 ```
 
-Se der certo, voce recebe uma mensagem simples no chat configurado.
+If it succeeds, you should receive a simple message in the configured Telegram chat.
 
-## Como validar o Reddit JSON
+## Validating Reddit JSON
 
 ```powershell
 python scripts\validate_reddit_json.py
 ```
 
-O script:
+The script:
 
-- testa subreddits de exemplo
-- mede status, content-type e tempo de resposta
-- verifica se o payload e um `Listing`
-- confere campos minimos
-- salva `output/reddit_validation_report.json`
+- tests example subreddits
+- measures status, content type, and response time
+- checks whether the payload is a valid `Listing`
+- verifies minimum required fields
+- saves `output/reddit_validation_report.json`
 
-Interpretacao:
+Interpretation:
 
-- `functional`: funcionou nesse momento, mas continua opcional
-- `functional_but_unstable`: usavel com cautela
-- `blocked`: nao usar
-- `not_recommended`: manter RSS-only
+- `functional`: worked at this moment, but still optional
+- `functional_but_unstable`: usable with caution
+- `blocked`: do not use
+- `not_recommended`: keep RSS-only mode
 
-Regras finais:
+Final rules:
 
-- `enable_reddit_by_default` deve continuar `false`
-- `enable_reddit_optionally` pode ser `true`
-- `operate_only_rss` decide se voce deve manter somente RSS
+- `enable_reddit_by_default` should remain `false`
+- `enable_reddit_optionally` may be `true`
+- `operate_only_rss` tells you whether Reddit should stay disabled
 
-## Como rodar o digest manualmente
+## Running the digest manually
+
+Standard run:
 
 ```powershell
 python scripts\run_digest.py
 ```
 
-Modo sem envio:
+Dry run without Telegram delivery:
 
 ```powershell
 python scripts\run_digest.py --dry-run
 ```
 
-Modo sem historico:
+Run without saving a dated history copy:
 
 ```powershell
 python scripts\run_digest.py --no-history
 ```
 
-Arquivos gerados em `output/`:
+Files generated in `output/`:
 
 - `raw_rss_items.json`
 - `raw_reddit_items.json`
@@ -256,7 +258,7 @@ Arquivos gerados em `output/`:
 - `last_run_report.json`
 - `telegram_preview.txt`
 
-Historico por data:
+Dated execution history:
 
 - `output/history/YYYY-MM-DD/HH-MM-SS/raw_rss_items.json`
 - `output/history/YYYY-MM-DD/HH-MM-SS/raw_reddit_items.json`
@@ -265,76 +267,77 @@ Historico por data:
 - `output/history/YYYY-MM-DD/HH-MM-SS/telegram_preview.txt`
 - `output/history/YYYY-MM-DD/HH-MM-SS/run_report.json`
 
-### O que faz o `dry-run`
+### What `dry-run` does
 
-- roda coleta, normalizacao, dedupe, ranking e formatter
-- salva preview e JSONs
-- nao envia nada ao Telegram
-- e ideal para testar layout, fontes e ranking antes de publicar
+- runs collection, normalization, dedupe, ranking, and formatting
+- saves preview and JSON outputs
+- does not send anything to Telegram
+- ideal for validating layout, source health, and ranking before production use
 
-### O que faz o historico por data
+### What dated history does
 
-- guarda uma copia de cada execucao
-- evita perder rastreabilidade quando `last_run_report.json` for sobrescrito
-- facilita comparar mudancas entre dias ou entre execucoes de teste
+- keeps a copy of every execution
+- prevents losing traceability when `last_run_report.json` is overwritten
+- makes it easier to compare days or inspect previous test runs
 
-## Formato da mensagem no Telegram
+## Telegram message format
 
-O formatter foi ajustado para chegar organizado por categoria:
+The formatter is designed to produce a more structured and visually clearer Telegram briefing:
 
 - Games
 - Game Dev
-- IA
-- Mercado
+- AI
+- Markets
 - Tech
-- Radar Reddit
-- Cobertura Editorial
+- Reddit Radar
+- Editorial Coverage
 
-Cada item sai com:
+Each item includes:
 
-- titulo clicavel
-- resumo curto
-- sinais de Reddit quando existirem
-- indicacao de origem RSS quando aplicavel
+- clickable title
+- short summary
+- explicit Reddit labeling when the primary link is a Reddit thread
+- Reddit discussion hint when an external article is being amplified by Reddit
+- editorial source labeling for RSS-driven coverage
 
-## Automacao diaria no GitHub
+## Daily GitHub automation
 
-O arquivo pronto esta em:
+Workflow file:
 
 - `.github/workflows/daily_digest.yml`
 
-### Horario configurado
+### Scheduled time
 
-Voce pediu envio de segunda a sabado por volta de 12h no horario do Brasil.
+You asked for delivery from Monday to Saturday around noon in Brazil.
 
-No dia 24 de marco de 2026, `America/Sao_Paulo` esta em `UTC-03:00`.
+On March 24, 2026, `America/Sao_Paulo` is `UTC-03:00`.
 
-Por isso o workflow usa:
+That is why the workflow uses:
 
 ```yaml
 cron: "0 15 * * 1-6"
 ```
 
-Isso significa:
+Meaning:
 
 - 15:00 UTC
 - 12:00 BRT
-- segunda a sabado
+- Monday through Saturday
 
-Se no futuro a regra de fuso mudar, ajuste o cron.
+If time zone rules change in the future, update the cron value accordingly.
 
-### O que o workflow faz
+### What the workflow does
 
-1. baixa o codigo
-2. instala Python e dependencias
-3. roda a validacao do Reddit
-4. roda o digest
-5. envia ao Telegram
-6. sobe `output/` e `logs/` como artifacts
+1. checks out the code
+2. installs Python and dependencies
+3. validates Reddit JSON
+4. runs the digest
+5. sends messages to Telegram
+6. uploads `output/` and `logs/` as workflow artifacts
 
-## Passo a passo completo para deixar 100% funcional no GitHub
+## Full step-by-step GitHub setup
 
-### 1. Inicialize o Git local
+### 1. Initialize Git locally
 
 ```powershell
 git init
@@ -342,117 +345,119 @@ git add .
 git commit -m "Initial resilient Telegram digest"
 ```
 
-### 2. Crie um repositorio no GitHub
+### 2. Create a GitHub repository
 
-No navegador:
+In the browser:
 
-1. entre em [GitHub](https://github.com)
-2. clique em `New repository`
-3. escolha um nome, por exemplo `daily-telegram-digest`
-4. nao marque para criar README remoto, porque ele ja existe aqui
+1. go to [GitHub](https://github.com)
+2. click `New repository`
+3. choose a name, for example `daily-telegram-digest`
+4. do not enable README, `.gitignore`, or license generation because they already exist here
 
-### 3. Conecte o repositorio local ao remoto
+### 3. Connect the local repo to GitHub
 
-Substitua `SEU_USUARIO` e `SEU_REPO`:
+Replace `YOUR_USER` and `YOUR_REPO`:
 
 ```powershell
-git remote add origin https://github.com/SEU_USUARIO/SEU_REPO.git
+git remote add origin https://github.com/YOUR_USER/YOUR_REPO.git
 git branch -M main
 git push -u origin main
 ```
 
-### 4. Cadastre os Secrets no GitHub
+### 4. Add repository secrets
 
-No repositorio remoto:
+In the GitHub repository:
 
-1. abra `Settings`
-2. abra `Secrets and variables`
-3. abra `Actions`
-4. crie os secrets:
+1. open `Settings`
+2. open `Secrets and variables`
+3. open `Actions`
+4. create these secrets:
 
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 - `REDDIT_USER_AGENT`
 
-### 5. Teste o workflow manualmente
+### 5. Run the workflow manually once
 
-No GitHub:
+In GitHub:
 
-1. abra a aba `Actions`
-2. escolha `Daily Digest`
-3. clique em `Run workflow`
+1. open the `Actions` tab
+2. select `Daily Digest`
+3. click `Run workflow`
 
-### 6. Confirme o envio
+### 6. Confirm the result
 
-Cheque:
+Check:
 
-- se a mensagem chegou no Telegram
-- se o job terminou com sucesso
-- se os artifacts foram gerados
+- whether the message reached Telegram
+- whether the workflow run finished successfully
+- whether the artifacts were uploaded
 
-## O que nunca deve ir para o Git
+## What must never go into Git
 
 - `.env`
-- logs locais
-- outputs sensiveis
+- local logs
+- sensitive outputs
 - caches
-- ambiente virtual
+- the virtual environment
 
-O `.gitignore` do projeto ja cobre isso.
+The current `.gitignore` already covers these cases.
 
-## Testes automatizados
+## Automated tests
 
-Rodar:
+Run:
 
 ```powershell
 pytest
 ```
 
-A suite cobre:
+The suite covers:
 
-- parser do Reddit
-- JSON invalido
-- HTML no lugar de JSON
-- content-type invalido
-- campos ausentes
-- fallback para RSS-only
-- falha parcial de subreddit
-- deduplicacao
+- Reddit parsing
+- invalid JSON
+- HTML instead of JSON
+- invalid content type
+- missing fields
+- RSS-only fallback
+- partial subreddit failures
+- deduplication
 - ranking
-- formatter
-- outputs vazios
+- formatter behavior
+- empty outputs
+- dry-run behavior
+- dated history generation
 
 ## Troubleshooting
 
-### A mensagem nao chegou no Telegram
+### The Telegram message did not arrive
 
-Verifique:
+Check:
 
-- token
-- chat id
-- se o bot tem permissao no chat
-- se o script `send_test_telegram.py` funciona
+- bot token
+- chat ID
+- whether the bot has permission in the target chat
+- whether `send_test_telegram.py` works
 
-### O Reddit parou
+### Reddit stopped working
 
-Verifique:
+Check:
 
 - `output/reddit_validation_report.json`
 - `logs/digest.log`
 
-Mesmo assim o digest deve seguir com RSS.
+Even then, the digest should continue with RSS only.
 
-### O workflow nao roda no horario certo
+### The workflow does not run at the expected time
 
-Verifique:
+Check:
 
-- se o repositorio esta publico ou com Actions habilitadas
-- se o cron esta correto
-- se o fuso desejado continua `UTC-03:00`
+- whether GitHub Actions is enabled for the repository
+- whether the cron expression is correct
+- whether your desired time zone is still `UTC-03:00`
 
-## Proximos passos sugeridos
+## Suggested next steps
 
-- adicionar mais fontes validadas por categoria
-- incluir filtros por palavras-chave para reduzir ruido
-- salvar historico diario em banco leve
-- criar dashboard simples de auditoria
+- add more validated feeds per category
+- include keyword-based boosting and suppression
+- add lightweight archival storage for daily snapshots
+- build a simple monitoring or audit dashboard
