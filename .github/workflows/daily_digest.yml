@@ -1,5 +1,10 @@
 name: Daily Digest
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 on:
   schedule:
     - cron: "55 13 * * 1-6"
@@ -117,6 +122,20 @@ jobs:
               handle.write(f"- Telegram: {payload['telegram']}\n")
           PY
 
+      - name: Build browser briefing
+        if: always()
+        run: python scripts/build_browser_briefing.py
+
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
       - name: Upload logs and outputs
         if: always()
         uses: actions/upload-artifact@v4
@@ -125,3 +144,15 @@ jobs:
           path: |
             output/
             logs/
+
+  deploy-pages:
+    if: always()
+    needs: digest
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

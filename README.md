@@ -321,6 +321,10 @@ Workflow file:
 
 - `.github/workflows/daily_digest.yml`
 
+Browser briefing builder:
+
+- `scripts/build_browser_briefing.py`
+
 ### Scheduled time
 
 You asked for delivery from Monday to Saturday around noon in Brazil.
@@ -353,8 +357,22 @@ If time zone rules change in the future, update the cron value accordingly.
 3. validates Reddit JSON
 4. runs the digest
 5. publishes a digest summary with `rss_items`, `reddit_items`, and the runtime Reddit decision
-6. sends messages to Telegram
-7. uploads `output/` and `logs/` as workflow artifacts
+6. builds a browser-ready static HTML briefing
+7. deploys the latest dashboard to GitHub Pages
+8. sends messages to Telegram
+9. uploads `output/` and `logs/` as workflow artifacts
+
+## Browser dashboard
+
+The workflow now also generates a static browser dashboard from the latest run and deploys it with GitHub Pages.
+
+Typical URL pattern:
+
+- `https://YOUR_USER.github.io/YOUR_REPO/`
+
+For this repository, once Pages is enabled in GitHub settings, the page should be:
+
+- `https://andrallys.github.io/rss-reddit-telegram-digest/`
 
 ## Full step-by-step GitHub setup
 
