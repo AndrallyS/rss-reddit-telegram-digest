@@ -108,6 +108,9 @@ def run_digest(
             subreddits=sources_config.reddit_subreddits,
             endpoints=sources_config.reddit_endpoints,
             time_window_hours=sources_config.reddit_time_window_hours,
+            request_delay_seconds=sources_config.reddit_request_delay_seconds,
+            max_items_per_category=sources_config.reddit_max_items_per_category,
+            max_requests_per_run=sources_config.reddit_max_requests_per_run,
             logger=logger,
             health_tracker=health_tracker,
         )

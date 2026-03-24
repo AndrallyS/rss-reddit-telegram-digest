@@ -201,6 +201,20 @@ def _build_sections(items: list[CollectedItem], ranking_config: RankingConfig) -
     return sections
 
 
+def _header_summary(items: list[CollectedItem]) -> str:
+    reddit_primary = sum(1 for item in items if _is_reddit_primary_item(item))
+    reddit_linked = sum(
+        1
+        for item in items
+        if not _is_reddit_primary_item(item) and "reddit" in item.raw_metadata and item.discussion_url
+    )
+    return (
+        f"Reddit active: {'yes' if (reddit_primary or reddit_linked) else 'no'}"
+        f" | Reddit posts: {reddit_primary}"
+        f" | Reddit-linked stories: {reddit_linked}"
+    )
+
+
 def format_digest_messages(
     items: list[CollectedItem],
     ranking_config: RankingConfig,
@@ -217,7 +231,8 @@ def format_digest_messages(
 
     header = (
         f"<b>My Daily Briefing</b>\n"
-        f"<i>{today} | RSS-first briefing with optional Reddit tracking</i>"
+        f"<i>{today} | RSS-first briefing with optional Reddit tracking</i>\n"
+        f"<i>{html.escape(_header_summary(items))}</i>"
     )
     sections = [header, *_build_sections(items, ranking_config)]
     return split_messages(sections, ranking_config.telegram_message_limit)

@@ -11,6 +11,9 @@ from dotenv import load_dotenv
 
 from app.constants import (
     DEFAULT_BACKOFF_BASE_SECONDS,
+    DEFAULT_REDDIT_MAX_ITEMS_PER_CATEGORY,
+    DEFAULT_REDDIT_MAX_REQUESTS_PER_RUN,
+    DEFAULT_REDDIT_REQUEST_DELAY_SECONDS,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_REDDIT_WINDOW_HOURS,
     DEFAULT_TELEGRAM_MESSAGE_LIMIT,
@@ -113,6 +116,24 @@ def load_sources_config(root_dir: Path | None = None) -> SourcesConfig:
             reddit_cfg.get("time_window_hours", DEFAULT_REDDIT_WINDOW_HOURS)
         ),
         reddit_endpoints=endpoints,
+        reddit_request_delay_seconds=float(
+            reddit_cfg.get(
+                "request_delay_seconds",
+                DEFAULT_REDDIT_REQUEST_DELAY_SECONDS,
+            )
+        ),
+        reddit_max_items_per_category=int(
+            reddit_cfg.get(
+                "max_items_per_category",
+                DEFAULT_REDDIT_MAX_ITEMS_PER_CATEGORY,
+            )
+        ),
+        reddit_max_requests_per_run=int(
+            reddit_cfg.get(
+                "max_requests_per_run",
+                DEFAULT_REDDIT_MAX_REQUESTS_PER_RUN,
+            )
+        ),
     )
 
 

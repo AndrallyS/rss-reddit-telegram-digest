@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -204,6 +205,9 @@ def fetch_reddit_items(
     subreddits: list[SubredditConfig],
     endpoints: list[RedditEndpointConfig],
     time_window_hours: int,
+    request_delay_seconds: float,
+    max_items_per_category: int,
+    max_requests_per_run: int,
     logger: logging.Logger,
     health_tracker: HealthTracker,
 ) -> tuple[list[dict[str, Any]], list[FetchOutcome]]:
@@ -211,10 +215,38 @@ def fetch_reddit_items(
     collected: list[dict[str, Any]] = []
     outcomes: list[FetchOutcome] = []
     enabled_endpoints = [endpoint for endpoint in endpoints if endpoint.enabled]
+    category_totals: dict[str, int] = {}
+    seen_post_ids: set[str] = set()
+    requests_made = 0
 
     for subreddit in subreddits:
+        if requests_made >= max_requests_per_run:
+            logger.warning(
+                "Reddit request budget reached (%s/%s). Stopping early to reduce runner instability.",
+                requests_made,
+                max_requests_per_run,
+            )
+            break
+        if category_totals.get(subreddit.category, 0) >= max_items_per_category:
+            logger.info(
+                "Reddit category target already satisfied for %s (%s items). Skipping r/%s.",
+                subreddit.category,
+                category_totals[subreddit.category],
+                subreddit.name,
+            )
+            continue
+
         subreddit_failures = 0
+        subreddit_collected = 0
         for endpoint in enabled_endpoints:
+            if requests_made >= max_requests_per_run:
+                break
+            if category_totals.get(subreddit.category, 0) >= max_items_per_category:
+                break
+            if subreddit_collected >= subreddit.limit:
+                break
+
+            requests_made += 1
             payload, outcome = request_reddit_listing(
                 app_config=app_config,
                 subreddit=subreddit.name,
@@ -244,6 +276,21 @@ def fetch_reddit_items(
                 endpoint_name=endpoint.name,
                 time_window_hours=time_window_hours,
             )
+            remaining_category_slots = max(
+                max_items_per_category - category_totals.get(subreddit.category, 0),
+                0,
+            )
+            remaining_subreddit_slots = max(subreddit.limit - subreddit_collected, 0)
+            unique_items: list[dict[str, Any]] = []
+            for item in items:
+                item_id = item.get("id", "")
+                if not item_id or item_id in seen_post_ids:
+                    continue
+                unique_items.append(item)
+                seen_post_ids.add(item_id)
+                if len(unique_items) >= min(remaining_category_slots, remaining_subreddit_slots):
+                    break
+
             if missing_fields:
                 logger.warning(
                     "Reddit payload incomplete for %s %s: missing=%s",
@@ -251,19 +298,39 @@ def fetch_reddit_items(
                     endpoint.name,
                     ",".join(missing_fields),
                 )
-            if items:
+            if unique_items:
                 health_tracker.record_success(f"r/{subreddit.name}")
+            elif items:
+                logger.info(
+                    "Reddit endpoint returned only duplicate posts for %s %s.",
+                    subreddit.name,
+                    endpoint.name,
+                )
             else:
                 subreddit_failures += 1
                 health_tracker.record_failure(
                     f"r/{subreddit.name}",
                     "empty_or_outside_window",
                 )
-            outcome.items_collected = len(items)
+            category_totals[subreddit.category] = category_totals.get(subreddit.category, 0) + len(
+                unique_items
+            )
+            subreddit_collected += len(unique_items)
+            outcome.items_collected = len(unique_items)
             outcomes.append(outcome)
-            collected.extend(items[: subreddit.limit])
+            collected.extend(unique_items)
+
+            if request_delay_seconds > 0 and requests_made < max_requests_per_run:
+                time.sleep(request_delay_seconds)
         if subreddit_failures >= len(enabled_endpoints):
             logger.error("All Reddit endpoints failed for r/%s", subreddit.name)
+
+    logger.info(
+        "Reddit fetch completed with %s request(s) and %s item(s). Category totals: %s",
+        requests_made,
+        len(collected),
+        category_totals,
+    )
     return collected, outcomes
 
 

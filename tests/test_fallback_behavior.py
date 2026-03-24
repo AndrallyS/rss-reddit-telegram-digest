@@ -4,7 +4,7 @@ import json
 import logging
 
 from app.health import HealthTracker
-from app.models import FetchOutcome, TelegramSendResult
+from app.models import FetchOutcome, RedditEndpointConfig, SubredditConfig, TelegramSendResult
 from app.pipeline.runner import run_digest
 from app.sources import reddit_json_fetcher as reddit_module
 from app.utils import save_json
@@ -149,6 +149,9 @@ def test_one_subreddit_failure_does_not_stop_others(app_config, sources_config, 
         subreddits=sources_config.reddit_subreddits,
         endpoints=[sources_config.reddit_endpoints[0]],
         time_window_hours=24,
+        request_delay_seconds=0.0,
+        max_items_per_category=10,
+        max_requests_per_run=10,
         logger=logging.getLogger("test"),
         health_tracker=HealthTracker(),
     )
@@ -156,3 +159,76 @@ def test_one_subreddit_failure_does_not_stop_others(app_config, sources_config, 
     assert len(items) == 1
     assert any(outcome.source == "r/technology" for outcome in fetch_outcomes)
     assert any(outcome.source == "r/games" for outcome in fetch_outcomes)
+
+
+def test_reddit_fetch_stops_after_category_target(app_config, monkeypatch):
+    payload = {
+        "kind": "Listing",
+        "data": {
+            "children": [
+                {
+                    "kind": "t3",
+                    "data": {
+                        "id": "abc123",
+                        "title": "First",
+                        "created_utc": 1774336800,
+                        "score": 100,
+                        "num_comments": 12,
+                        "permalink": "/r/technology/comments/abc123/first/",
+                        "subreddit": "technology",
+                        "url": "https://www.reddit.com/r/technology/comments/abc123/first/",
+                        "domain": "reddit.com",
+                        "selftext": "one",
+                        "stickied": False,
+                        "over_18": False,
+                    },
+                },
+                {
+                    "kind": "t3",
+                    "data": {
+                        "id": "def456",
+                        "title": "Second",
+                        "created_utc": 1774336800,
+                        "score": 90,
+                        "num_comments": 8,
+                        "permalink": "/r/technology/comments/def456/second/",
+                        "subreddit": "technology",
+                        "url": "https://www.reddit.com/r/technology/comments/def456/second/",
+                        "domain": "reddit.com",
+                        "selftext": "two",
+                        "stickied": False,
+                        "over_18": False,
+                    },
+                },
+            ]
+        },
+    }
+    requested_subreddits: list[str] = []
+
+    def fake_request(**kwargs):
+        requested_subreddits.append(kwargs["subreddit"])
+        return payload, FetchOutcome(
+            source=f"r/{kwargs['subreddit']}",
+            status="ok",
+            endpoint=kwargs["endpoint"].name,
+        )
+
+    monkeypatch.setattr(reddit_module, "request_reddit_listing", fake_request)
+
+    items, _ = reddit_module.fetch_reddit_items(
+        app_config=app_config,
+        subreddits=[
+            SubredditConfig(name="technology", category="tech", limit=8),
+            SubredditConfig(name="programming", category="tech", limit=8),
+        ],
+        endpoints=[RedditEndpointConfig(name="top_day", path="top/.json", enabled=True)],
+        time_window_hours=24,
+        request_delay_seconds=0.0,
+        max_items_per_category=2,
+        max_requests_per_run=10,
+        logger=logging.getLogger("test"),
+        health_tracker=HealthTracker(),
+    )
+
+    assert len(items) == 2
+    assert requested_subreddits == ["technology"]

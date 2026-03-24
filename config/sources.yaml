@@ -126,6 +126,9 @@ rss_feeds:
 
 reddit:
   time_window_hours: 24
+  request_delay_seconds: 0.4
+  max_items_per_category: 10
+  max_requests_per_run: 20
   validation_subreddits:
     - games
     - gamedev
@@ -138,13 +141,13 @@ reddit:
       params:
         limit: 15
         t: day
-    - name: new
-      path: new/.json
+    - name: rising
+      path: rising/.json
       enabled: true
       params:
         limit: 15
-    - name: rising
-      path: rising/.json
+    - name: new
+      path: new/.json
       enabled: true
       params:
         limit: 15

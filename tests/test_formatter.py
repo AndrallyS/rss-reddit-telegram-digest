@@ -25,6 +25,7 @@ def test_formatter_builds_sections(make_item, ranking_config):
     assert "TECH" in combined
     assert "IA" in combined
     assert "My Daily Briefing" in combined
+    assert "Reddit active:" in combined
     assert "50 up" in combined
 
 

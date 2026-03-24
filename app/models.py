@@ -38,6 +38,9 @@ class SourcesConfig:
     reddit_validation_subreddits: list[str]
     reddit_time_window_hours: int
     reddit_endpoints: list[RedditEndpointConfig]
+    reddit_request_delay_seconds: float = 0.0
+    reddit_max_items_per_category: int = 10
+    reddit_max_requests_per_run: int = 20
 
 
 @dataclass(slots=True)

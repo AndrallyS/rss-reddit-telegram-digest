@@ -17,12 +17,12 @@ category_bonus:
   tech: 0.15
 
 section_order:
+  - reddit
   - games
   - gamedev
   - ai
   - finance
   - tech
-  - reddit
   - rss
 
 section_titles:

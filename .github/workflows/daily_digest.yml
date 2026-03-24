@@ -47,6 +47,49 @@ jobs:
           BACKOFF_BASE_SECONDS: "0.75"
         run: python scripts/run_digest.py
 
+      - name: Publish digest summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path("output/last_run_report.json")
+          if not report_path.exists():
+              summary = "Digest report not found."
+              print(summary)
+              with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as handle:
+                  handle.write(summary + "\n")
+              raise SystemExit(0)
+
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          reddit_outcomes = report.get("reddit_outcomes", [])
+          reddit_failures = [
+              outcome for outcome in reddit_outcomes if outcome.get("status") != "ok"
+          ]
+          payload = {
+              "rss_items": report.get("rss_items"),
+              "reddit_items": report.get("reddit_items"),
+              "messages_generated": report.get("messages_generated"),
+              "reddit_enabled": report.get("reddit_policy", {}).get("enabled"),
+              "reddit_reason": report.get("reddit_policy", {}).get("reason"),
+              "reddit_failures": len(reddit_failures),
+              "telegram": report.get("telegram", {}).get("detail"),
+          }
+          print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as handle:
+              handle.write("## Digest Summary\n\n")
+              handle.write(f"- RSS items: {payload['rss_items']}\n")
+              handle.write(f"- Reddit items: {payload['reddit_items']}\n")
+              handle.write(f"- Messages generated: {payload['messages_generated']}\n")
+              handle.write(f"- Reddit enabled: {payload['reddit_enabled']}\n")
+              handle.write(f"- Reddit reason: {payload['reddit_reason']}\n")
+              handle.write(f"- Reddit non-ok outcomes: {payload['reddit_failures']}\n")
+              handle.write(f"- Telegram: {payload['telegram']}\n")
+          PY
+
       - name: Upload logs and outputs
         if: always()
         uses: actions/upload-artifact@v4

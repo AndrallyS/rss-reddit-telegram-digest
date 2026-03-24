@@ -227,6 +227,7 @@ Final rules:
 - `enable_reddit_by_default` should remain `false`
 - `enable_reddit_optionally` may be `true`
 - `operate_only_rss` tells you whether Reddit should stay disabled
+- validation success does not guarantee every later Reddit request will succeed on shared runners, so the runtime fetcher now uses a conservative request budget
 
 ## Running the digest manually
 
@@ -332,8 +333,9 @@ If time zone rules change in the future, update the cron value accordingly.
 2. installs Python and dependencies
 3. validates Reddit JSON
 4. runs the digest
-5. sends messages to Telegram
-6. uploads `output/` and `logs/` as workflow artifacts
+5. publishes a digest summary with `rss_items`, `reddit_items`, and the runtime Reddit decision
+6. sends messages to Telegram
+7. uploads `output/` and `logs/` as workflow artifacts
 
 ## Full step-by-step GitHub setup
 
@@ -444,6 +446,13 @@ Check:
 
 - `output/reddit_validation_report.json`
 - `logs/digest.log`
+- the GitHub Actions run summary for `reddit_items`, `reddit_reason`, and `reddit_failures`
+
+Important:
+
+- the validator uses a small sample of requests
+- the full runtime fetch used to make many more requests than validation
+- the runtime collector now stops early once each category already has enough Reddit material, which reduces shared-runner instability and makes GitHub runs closer to local runs
 
 Even then, the digest should continue with RSS only.
 
