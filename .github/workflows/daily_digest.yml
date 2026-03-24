@@ -1,0 +1,57 @@
+name: Daily Digest
+
+on:
+  schedule:
+    - cron: "0 15 * * 1-6"
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate optional Reddit JSON source
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+          REQUEST_TIMEOUT_SECONDS: "12"
+          ENABLE_REDDIT: "true"
+          LOG_LEVEL: "INFO"
+          MAX_RETRIES: "2"
+          BACKOFF_BASE_SECONDS: "0.75"
+        run: python scripts/validate_reddit_json.py
+
+      - name: Run digest and send to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+          REQUEST_TIMEOUT_SECONDS: "12"
+          ENABLE_REDDIT: "true"
+          LOG_LEVEL: "INFO"
+          MAX_RETRIES: "2"
+          BACKOFF_BASE_SECONDS: "0.75"
+        run: python scripts/run_digest.py
+
+      - name: Upload logs and outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-artifacts
+          path: |
+            output/
+            logs/

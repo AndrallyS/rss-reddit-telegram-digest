@@ -1,0 +1,186 @@
+rss_feeds:
+  - name: GameSpot
+    url: https://www.gamespot.com/feeds/mashup/
+    category: games
+    limit: 6
+  - name: PC Gamer
+    url: https://www.pcgamer.com/rss/
+    category: games
+    limit: 6
+  - name: Nintendo Life
+    url: https://www.nintendolife.com/feeds/latest
+    category: games
+    limit: 6
+  - name: Push Square
+    url: https://www.pushsquare.com/feeds/latest
+    category: games
+    limit: 6
+  - name: Gematsu
+    url: https://www.gematsu.com/feed
+    category: games
+    limit: 6
+  - name: Polygon
+    url: https://www.polygon.com/rss/index.xml
+    category: games
+    limit: 6
+  - name: Game Developer
+    url: https://www.gamedeveloper.com/rss.xml
+    category: gamedev
+    limit: 6
+  - name: Unity Blog
+    url: https://blog.unity.com/feed
+    category: gamedev
+    limit: 6
+  - name: BlenderNation
+    url: https://www.blendernation.com/feed/
+    category: gamedev
+    limit: 6
+  - name: Godot Blog
+    url: https://godotengine.org/rss.xml
+    category: gamedev
+    limit: 6
+  - name: DirectX Developer Blog
+    url: https://devblogs.microsoft.com/directx/feed/
+    category: gamedev
+    limit: 6
+  - name: 80 Level
+    url: https://80.lv/feed
+    category: gamedev
+    limit: 6
+  - name: OpenAI News
+    url: https://openai.com/news/rss.xml
+    category: ai
+    limit: 6
+  - name: NVIDIA Blog
+    url: https://blogs.nvidia.com/feed/
+    category: ai
+    limit: 6
+  - name: Hugging Face Blog
+    url: https://huggingface.co/blog/feed.xml
+    category: ai
+    limit: 6
+  - name: TechCrunch AI
+    url: https://techcrunch.com/tag/artificial-intelligence/feed/
+    category: ai
+    limit: 6
+  - name: The Verge AI
+    url: https://www.theverge.com/rss/ai/index.xml
+    category: ai
+    limit: 6
+  - name: VentureBeat AI
+    url: https://venturebeat.com/category/ai/feed/
+    category: ai
+    limit: 6
+  - name: InfoMoney
+    url: https://www.infomoney.com.br/feed/
+    category: finance
+    limit: 6
+  - name: Money Times
+    url: https://www.moneytimes.com.br/feed/
+    category: finance
+    limit: 6
+  - name: Brazil Journal
+    url: https://braziljournal.com/feed/
+    category: finance
+    limit: 6
+  - name: MarketWatch Top Stories
+    url: https://feeds.content.dowjones.io/public/rss/mw_topstories
+    category: finance
+    limit: 6
+  - name: SEC Press Releases
+    url: https://www.sec.gov/news/pressreleases.rss
+    category: finance
+    limit: 6
+  - name: Federal Reserve Press
+    url: https://www.federalreserve.gov/feeds/press_all.xml
+    category: finance
+    limit: 6
+  - name: Ars Technica
+    url: https://feeds.arstechnica.com/arstechnica/index
+    category: tech
+    limit: 6
+  - name: TechCrunch
+    url: https://techcrunch.com/feed/
+    category: tech
+    limit: 6
+  - name: WIRED
+    url: https://www.wired.com/feed/rss
+    category: tech
+    limit: 6
+  - name: The Verge
+    url: https://www.theverge.com/rss/index.xml
+    category: tech
+    limit: 6
+  - name: The Register
+    url: https://www.theregister.com/headlines.atom
+    category: tech
+    limit: 6
+  - name: InfoQ
+    url: https://feed.infoq.com/
+    category: tech
+    limit: 6
+  - name: Hacker News
+    url: https://hnrss.org/frontpage
+    category: tech
+    limit: 6
+
+reddit:
+  time_window_hours: 24
+  validation_subreddits:
+    - games
+    - gamedev
+    - MachineLearning
+    - stocks
+  endpoints:
+    - name: top_day
+      path: top/.json
+      enabled: true
+      params:
+        limit: 15
+        t: day
+    - name: new
+      path: new/.json
+      enabled: true
+      params:
+        limit: 15
+    - name: rising
+      path: rising/.json
+      enabled: true
+      params:
+        limit: 15
+  subreddits:
+    games:
+      - name: games
+        limit: 8
+      - name: pcgaming
+        limit: 8
+      - name: NintendoSwitch
+        limit: 8
+    gamedev:
+      - name: gamedev
+        limit: 8
+      - name: unity3d
+        limit: 8
+      - name: unrealengine
+        limit: 8
+    ai:
+      - name: MachineLearning
+        limit: 8
+      - name: singularity
+        limit: 8
+      - name: LocalLLaMA
+        limit: 8
+    finance:
+      - name: stocks
+        limit: 8
+      - name: investing
+        limit: 8
+      - name: economy
+        limit: 8
+    tech:
+      - name: technology
+        limit: 8
+      - name: programming
+        limit: 8
+      - name: hardware
+        limit: 8

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local configuration
+.env
+
+# Build / tooling
+.mypy_cache/
+
+# Runtime artifacts
+logs/*.log
+output/**
+!output/.gitkeep
+!logs/.gitkeep

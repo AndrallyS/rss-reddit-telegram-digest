@@ -1,0 +1,2 @@
+"""Resilient daily digest package."""
+

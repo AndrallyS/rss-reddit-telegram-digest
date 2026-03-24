@@ -1,0 +1,44 @@
+recency_window_hours: 24
+telegram_message_limit: 3500
+
+weights:
+  recency: 3.5
+  reddit_score: 0.65
+  comments: 0.45
+  multi_source: 1.2
+  reliability: 1.1
+  duplicate_penalty: 0.9
+
+category_bonus:
+  games: 0.2
+  gamedev: 0.15
+  ai: 0.2
+  finance: 0.2
+  tech: 0.15
+
+section_order:
+  - games
+  - gamedev
+  - ai
+  - finance
+  - tech
+  - reddit
+  - rss
+
+section_titles:
+  games: Games
+  gamedev: Game Dev
+  ai: IA
+  finance: Mercado
+  tech: Tech
+  reddit: Radar Reddit
+  rss: Cobertura Editorial
+
+section_limits:
+  games: 3
+  gamedev: 3
+  ai: 3
+  finance: 3
+  tech: 3
+  reddit: 4
+  rss: 4

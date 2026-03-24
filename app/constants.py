@@ -1,0 +1,25 @@
+"""Project-wide constants."""
+
+from __future__ import annotations
+
+DEFAULT_REDDIT_BASE_URL = "https://www.reddit.com"
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 12
+DEFAULT_MAX_RETRIES = 2
+DEFAULT_BACKOFF_BASE_SECONDS = 0.75
+DEFAULT_REDDIT_WINDOW_HOURS = 24
+DEFAULT_TELEGRAM_MESSAGE_LIMIT = 3500
+TRANSIENT_HTTP_STATUSES = {429, 500, 502, 503, 504}
+REDDIT_REQUIRED_FIELDS = {
+    "id",
+    "title",
+    "created_utc",
+    "score",
+    "num_comments",
+    "permalink",
+    "subreddit",
+}
+REDDIT_MINIMUM_CHILD_KIND = "t3"
+REDDIT_LISTING_KIND = "Listing"
+LOG_FILE_NAME = "digest.log"
+VALIDATION_REPORT_NAME = "reddit_validation_report.json"
+
