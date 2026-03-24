@@ -249,6 +249,20 @@ Run without saving a dated history copy:
 python scripts\run_digest.py --no-history
 ```
 
+One-click Windows launcher with Reddit enabled for that run:
+
+```powershell
+RUN_DIGEST_WITH_REDDIT.cmd
+```
+
+What it does:
+
+- forces `ENABLE_REDDIT=true` only for that launcher session
+- runs Reddit validation first
+- runs the digest immediately after
+- sends to Telegram if validation approves optional Reddit usage
+- falls back to RSS automatically if Reddit is blocked or invalid
+
 Files generated in `output/`:
 
 - `raw_rss_items.json`
@@ -316,13 +330,13 @@ On March 24, 2026, `America/Sao_Paulo` is `UTC-03:00`.
 That is why the workflow uses:
 
 ```yaml
-cron: "0 15 * * 1-6"
+cron: "55 14 * * 1-6"
 ```
 
 Meaning:
 
-- 15:00 UTC
-- 12:00 BRT
+- 14:55 UTC
+- about 11:55 BRT, to compensate for common GitHub Actions schedule delays
 - Monday through Saturday
 
 If time zone rules change in the future, update the cron value accordingly.
