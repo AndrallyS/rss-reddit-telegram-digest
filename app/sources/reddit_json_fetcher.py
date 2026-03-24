@@ -339,6 +339,7 @@ def run_reddit_validation(
     app_config: AppConfig,
     sample_subreddits: list[str],
     endpoints: list[RedditEndpointConfig],
+    request_delay_seconds: float,
     logger: logging.Logger,
 ) -> dict[str, Any]:
     checks: list[RedditValidationCheck] = []
@@ -388,6 +389,8 @@ def run_reddit_validation(
                     diagnosis=diagnosis,
                 )
             )
+            if request_delay_seconds > 0:
+                time.sleep(request_delay_seconds)
 
     summary = summarize_validation_checks(checks)
     return {

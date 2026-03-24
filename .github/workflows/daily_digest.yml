@@ -33,7 +33,23 @@ jobs:
           LOG_LEVEL: "INFO"
           MAX_RETRIES: "2"
           BACKOFF_BASE_SECONDS: "0.75"
-        run: python scripts/validate_reddit_json.py
+        run: |
+          python scripts/validate_reddit_json.py
+          if python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("output/reddit_validation_report.json").read_text(encoding="utf-8"))
+          approved = report.get("recommendations", {}).get("enable_reddit_optionally", False)
+          if approved:
+              print("Initial Reddit validation approved optional runtime use.")
+              raise SystemExit(1)
+          print("Initial Reddit validation did not approve optional runtime use. Retrying once after cooldown.")
+          PY
+          then
+            sleep 20
+            python scripts/validate_reddit_json.py
+          fi
 
       - name: Run digest and send to Telegram
         env:
@@ -56,6 +72,7 @@ jobs:
           from pathlib import Path
 
           report_path = Path("output/last_run_report.json")
+          validation_path = Path("output/reddit_validation_report.json")
           if not report_path.exists():
               summary = "Digest report not found."
               print(summary)
@@ -64,6 +81,11 @@ jobs:
               raise SystemExit(0)
 
           report = json.loads(report_path.read_text(encoding="utf-8"))
+          validation = (
+              json.loads(validation_path.read_text(encoding="utf-8"))
+              if validation_path.exists()
+              else {}
+          )
           reddit_outcomes = report.get("reddit_outcomes", [])
           reddit_failures = [
               outcome for outcome in reddit_outcomes if outcome.get("status") != "ok"
@@ -75,6 +97,8 @@ jobs:
               "reddit_enabled": report.get("reddit_policy", {}).get("enabled"),
               "reddit_reason": report.get("reddit_policy", {}).get("reason"),
               "reddit_failures": len(reddit_failures),
+              "validation_classification": validation.get("summary", {}).get("classification"),
+              "validation_valid_checks": validation.get("summary", {}).get("valid_json_checks"),
               "telegram": report.get("telegram", {}).get("detail"),
           }
           print(json.dumps(payload, indent=2, ensure_ascii=False))
@@ -87,6 +111,8 @@ jobs:
               handle.write(f"- Reddit enabled: {payload['reddit_enabled']}\n")
               handle.write(f"- Reddit reason: {payload['reddit_reason']}\n")
               handle.write(f"- Reddit non-ok outcomes: {payload['reddit_failures']}\n")
+              handle.write(f"- Validation classification: {payload['validation_classification']}\n")
+              handle.write(f"- Validation valid checks: {payload['validation_valid_checks']}\n")
               handle.write(f"- Telegram: {payload['telegram']}\n")
           PY
 

@@ -131,9 +131,9 @@ reddit:
   max_requests_per_run: 20
   validation_subreddits:
     - games
-    - gamedev
-    - MachineLearning
-    - stocks
+    - technology
+    - pcgaming
+    - programming
   endpoints:
     - name: top_day
       path: top/.json

@@ -67,6 +67,7 @@ def main() -> int:
         app_config=app_config,
         sample_subreddits=sources_config.reddit_validation_subreddits,
         endpoints=sources_config.reddit_endpoints,
+        request_delay_seconds=sources_config.reddit_request_delay_seconds,
         logger=logger,
     )
     report_path = app_config.output_dir / "reddit_validation_report.json"
