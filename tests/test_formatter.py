@@ -81,7 +81,7 @@ def test_formatter_marks_reddit_primary_link_clearly(make_item, ranking_config):
 
     combined = "\n".join(messages)
     assert "[Reddit] Discussion Thread" in combined
-    assert "Source: Reddit /r/technology" in combined
+    assert "Source: Reddit post | /r/technology" in combined
     assert "500 up" in combined
     assert "44 comments" in combined
 

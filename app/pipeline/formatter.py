@@ -52,8 +52,13 @@ def _title_text(item: CollectedItem) -> str:
 
 
 def _source_text(item: CollectedItem) -> str:
+    reddit_meta = item.raw_metadata.get("reddit", {})
+    subreddit = reddit_meta.get("subreddit")
     if _is_reddit_primary_item(item):
-        return html.escape(f"Source: Reddit {item.source_name.replace('r/', '/r/')}")
+        label = item.source_name.replace("r/", "/r/")
+        return html.escape(f"Source: Reddit post | {label}")
+    if subreddit:
+        return html.escape(f"Source: {item.source_name} | surfaced via Reddit /r/{subreddit}")
     return html.escape(f"Source: {item.source_name}")
 
 
@@ -143,6 +148,35 @@ def _reddit_section_candidates(items: list[CollectedItem]) -> list[CollectedItem
     return primary + discussed
 
 
+def _category_section_candidates(category: str, items: list[CollectedItem]) -> list[CollectedItem]:
+    category_items = [item for item in items if item.category == category]
+    primary_reddit = [item for item in category_items if _is_reddit_primary_item(item)]
+    discussed_external = [
+        item
+        for item in category_items
+        if not _is_reddit_primary_item(item) and "reddit" in item.raw_metadata and item.discussion_url
+    ]
+    editorial = [
+        item for item in category_items if "rss" in item.raw_metadata and item not in discussed_external
+    ]
+    other = [
+        item
+        for item in category_items
+        if item not in primary_reddit and item not in discussed_external and item not in editorial
+    ]
+
+    # Keep each category visually mixed: pure Reddit posts, then linked discussions, then editorial items.
+    return (
+        primary_reddit[:2]
+        + discussed_external[:2]
+        + editorial[:2]
+        + primary_reddit[2:]
+        + discussed_external[2:]
+        + editorial[2:]
+        + other
+    )
+
+
 def _build_sections(items: list[CollectedItem], ranking_config: RankingConfig) -> list[str]:
     sections: list[str] = []
     used_keys: set[str] = set()
@@ -153,7 +187,7 @@ def _build_sections(items: list[CollectedItem], ranking_config: RankingConfig) -
         elif category == "rss":
             candidates = [item for item in items if "rss" in item.raw_metadata]
         else:
-            candidates = [item for item in items if item.category == category]
+            candidates = _category_section_candidates(category, items)
 
         unique_items = _take_unique_items(
             candidates,
