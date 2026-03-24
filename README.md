@@ -140,7 +140,7 @@ logs/
 Example:
 
 ```powershell
-cd "C:\Users\Murph\OneDrive\Área de Trabalho\CODEX PROJECTS\rss-reddit-telegram-digest"
+cd "C:\Users\User\Folder\rss-reddit-telegram-digest"
 ```
 
 ### 2. Create the virtual environment
