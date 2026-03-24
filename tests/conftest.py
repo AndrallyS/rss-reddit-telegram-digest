@@ -31,6 +31,7 @@ def app_config(tmp_path: Path) -> AppConfig:
         log_level="INFO",
         max_retries=0,
         backoff_base_seconds=0.01,
+        sent_history_window_hours=24,
     )
 
 

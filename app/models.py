@@ -67,6 +67,7 @@ class AppConfig:
     log_level: str
     max_retries: int
     backoff_base_seconds: float
+    sent_history_window_hours: int
 
 
 @dataclass(slots=True)

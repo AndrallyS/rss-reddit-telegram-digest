@@ -5,21 +5,21 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 import logging
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable
 
-from app.config import resolve_reddit_runtime_policy
+from app.config import get_sent_history_path, resolve_reddit_runtime_policy
 from app.delivery.telegram_sender import send_telegram_messages
 from app.health import HealthTracker
 from app.models import AppConfig, CollectedItem, RankingConfig, SourcesConfig, TelegramSendResult
 from app.pipeline.dedupe import deduplicate_items
-from app.pipeline.formatter import build_preview, format_digest_messages
+from app.pipeline.formatter import build_preview, format_digest_messages, select_digest_items
 from app.pipeline.normalize import normalize_all
 from app.pipeline.ranker import rank_items
 from app.sources.reddit_json_fetcher import fetch_reddit_items
 from app.sources.rss_fetcher import fetch_rss_items
-from app.utils import save_json
+from app.utils import canonicalize_url, load_json, normalize_title, parse_datetime, save_json
 
 
 def _serialize_runtime(value: Any) -> Any:
@@ -72,6 +72,76 @@ def _build_history_dir(output_dir: Path, reference: datetime, save_history: bool
     return output_dir / "history" / date_part / time_part
 
 
+def _item_history_key(item: CollectedItem) -> str:
+    return canonicalize_url(item.canonical_url) or normalize_title(item.title)
+
+
+def _load_recently_sent_keys(app_config: AppConfig, started_at: datetime) -> set[str]:
+    history = load_json(get_sent_history_path(app_config.root_dir))
+    if not isinstance(history, list):
+        return set()
+    cutoff = started_at - timedelta(hours=app_config.sent_history_window_hours)
+    recent_keys: set[str] = set()
+    for entry in history:
+        if not isinstance(entry, dict):
+            continue
+        sent_at = parse_datetime(entry.get("sent_at"))
+        if sent_at is None or sent_at < cutoff:
+            continue
+        key = str(entry.get("history_key") or "").strip()
+        if key:
+            recent_keys.add(key)
+    return recent_keys
+
+
+def _filter_recently_sent(
+    items: list[CollectedItem],
+    recent_keys: set[str],
+) -> tuple[list[CollectedItem], int]:
+    if not recent_keys:
+        return items, 0
+    filtered: list[CollectedItem] = []
+    skipped = 0
+    for item in items:
+        history_key = _item_history_key(item)
+        if history_key and history_key in recent_keys:
+            skipped += 1
+            continue
+        filtered.append(item)
+    return filtered, skipped
+
+
+def _save_sent_history(
+    app_config: AppConfig,
+    selected_items: list[CollectedItem],
+    started_at: datetime,
+) -> None:
+    path = get_sent_history_path(app_config.root_dir)
+    existing = load_json(path)
+    history = existing if isinstance(existing, list) else []
+    cutoff = started_at - timedelta(hours=app_config.sent_history_window_hours * 3)
+    retained: list[dict[str, Any]] = []
+    for entry in history:
+        if not isinstance(entry, dict):
+            continue
+        sent_at = parse_datetime(entry.get("sent_at"))
+        if sent_at is None or sent_at >= cutoff:
+            retained.append(entry)
+
+    for item in selected_items:
+        retained.append(
+            {
+                "sent_at": started_at.isoformat(),
+                "history_key": _item_history_key(item),
+                "title": item.title,
+                "canonical_url": item.canonical_url,
+                "category": item.category,
+                "source_name": item.source_name,
+            }
+        )
+    save_json(path, retained)
+
+
 def run_digest(
     *,
     app_config: AppConfig,
@@ -118,7 +188,10 @@ def run_digest(
     normalized_items = normalize_all(raw_rss_items, raw_reddit_items)
     deduped_items, dedupe_stats = deduplicate_items(normalized_items)
     ranked_items = rank_items(deduped_items, ranking_config)
-    messages = format_digest_messages(ranked_items, ranking_config)
+    recent_keys = _load_recently_sent_keys(app_config, started_at)
+    filtered_ranked_items, skipped_recent = _filter_recently_sent(ranked_items, recent_keys)
+    selected_items = select_digest_items(filtered_ranked_items, ranking_config)
+    messages = format_digest_messages(filtered_ranked_items, ranking_config)
     preview = build_preview(messages)
     if dry_run:
         telegram_result = TelegramSendResult(
@@ -133,6 +206,8 @@ def run_digest(
             messages=messages,
             logger=logger,
         )
+        if telegram_result.sent and telegram_result.delivered_messages > 0:
+            _save_sent_history(app_config, selected_items, started_at)
 
     elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
     report = {
@@ -142,6 +217,9 @@ def run_digest(
         "reddit_items": len(raw_reddit_items),
         "normalized_items": len(normalized_items),
         "deduped_items": len(deduped_items),
+        "filtered_recently_sent_items": len(filtered_ranked_items),
+        "recent_items_skipped": skipped_recent,
+        "selected_items_sent": len(selected_items),
         "messages_generated": len(messages),
         "dry_run": dry_run,
         "reddit_policy": reddit_policy,

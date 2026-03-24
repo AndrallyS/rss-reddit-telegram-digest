@@ -178,7 +178,16 @@ def _category_section_candidates(category: str, items: list[CollectedItem]) -> l
 
 
 def _build_sections(items: list[CollectedItem], ranking_config: RankingConfig) -> list[str]:
+    sections, _ = _build_sections_with_items(items, ranking_config)
+    return sections
+
+
+def _build_sections_with_items(
+    items: list[CollectedItem],
+    ranking_config: RankingConfig,
+) -> tuple[list[str], list[CollectedItem]]:
     sections: list[str] = []
+    selected_items: list[CollectedItem] = []
     used_keys: set[str] = set()
 
     for category in ranking_config.section_order:
@@ -198,7 +207,8 @@ def _build_sections(items: list[CollectedItem], ranking_config: RankingConfig) -
         section = _section(title, unique_items, category)
         if section:
             sections.append(section)
-    return sections
+            selected_items.extend(unique_items)
+    return sections, selected_items
 
 
 def _header_summary(items: list[CollectedItem]) -> str:
@@ -236,6 +246,14 @@ def format_digest_messages(
     )
     sections = [header, *_build_sections(items, ranking_config)]
     return split_messages(sections, ranking_config.telegram_message_limit)
+
+
+def select_digest_items(
+    items: list[CollectedItem],
+    ranking_config: RankingConfig,
+) -> list[CollectedItem]:
+    _, selected_items = _build_sections_with_items(items, ranking_config)
+    return selected_items
 
 
 def build_preview(messages: list[str]) -> str:

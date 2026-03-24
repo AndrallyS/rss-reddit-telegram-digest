@@ -7,7 +7,7 @@ from app.health import HealthTracker
 from app.models import FetchOutcome, RedditEndpointConfig, SubredditConfig, TelegramSendResult
 from app.pipeline.runner import run_digest
 from app.sources import reddit_json_fetcher as reddit_module
-from app.utils import save_json
+from app.utils import load_json, save_json
 
 
 def test_digest_keeps_rss_when_reddit_disabled(app_config, sources_config, ranking_config):
@@ -232,3 +232,47 @@ def test_reddit_fetch_stops_after_category_target(app_config, monkeypatch):
 
     assert len(items) == 2
     assert requested_subreddits == ["technology"]
+
+
+def test_digest_skips_recently_sent_items(app_config, sources_config, ranking_config):
+    def fake_rss_fetcher(**kwargs):
+        return (
+            [
+                {
+                    "source": "Feed",
+                    "source_type": "rss",
+                    "category": "tech",
+                    "title": "Repeated Item",
+                    "url": "https://example.com/repeated",
+                    "published_at": "2026-03-23T10:00:00+00:00",
+                    "summary": "rss summary",
+                }
+            ],
+            [FetchOutcome(source="Feed", status="ok", items_collected=1)],
+        )
+
+    first_report = run_digest(
+        app_config=app_config,
+        sources_config=sources_config,
+        ranking_config=ranking_config,
+        logger=logging.getLogger("test"),
+        rss_fetcher=fake_rss_fetcher,
+        telegram_sender=lambda **kwargs: TelegramSendResult(True, 1, "sent"),
+    )
+
+    second_report = run_digest(
+        app_config=app_config,
+        sources_config=sources_config,
+        ranking_config=ranking_config,
+        logger=logging.getLogger("test"),
+        rss_fetcher=fake_rss_fetcher,
+        telegram_sender=lambda **kwargs: TelegramSendResult(True, 1, "sent"),
+    )
+
+    history = load_json(app_config.output_dir / "sent_items_history.json")
+
+    assert first_report["selected_items_sent"] == 1
+    assert second_report["recent_items_skipped"] == 1
+    assert second_report["selected_items_sent"] == 0
+    assert isinstance(history, list)
+    assert len(history) == 1

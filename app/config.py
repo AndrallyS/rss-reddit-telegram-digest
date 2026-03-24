@@ -16,7 +16,9 @@ from app.constants import (
     DEFAULT_REDDIT_REQUEST_DELAY_SECONDS,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_REDDIT_WINDOW_HOURS,
+    DEFAULT_SENT_HISTORY_WINDOW_HOURS,
     DEFAULT_TELEGRAM_MESSAGE_LIMIT,
+    SENT_HISTORY_NAME,
     VALIDATION_REPORT_NAME,
 )
 from app.models import (
@@ -67,6 +69,9 @@ def load_app_config(root_dir: Path | None = None) -> AppConfig:
         max_retries=int(os.getenv("MAX_RETRIES", "2")),
         backoff_base_seconds=float(
             os.getenv("BACKOFF_BASE_SECONDS", DEFAULT_BACKOFF_BASE_SECONDS)
+        ),
+        sent_history_window_hours=int(
+            os.getenv("SENT_HISTORY_WINDOW_HOURS", DEFAULT_SENT_HISTORY_WINDOW_HOURS)
         ),
     )
 
@@ -162,6 +167,11 @@ def load_ranking_config(root_dir: Path | None = None) -> RankingConfig:
 def get_validation_report_path(root_dir: Path | None = None) -> Path:
     root = root_dir or get_project_root()
     return root / "output" / VALIDATION_REPORT_NAME
+
+
+def get_sent_history_path(root_dir: Path | None = None) -> Path:
+    root = root_dir or get_project_root()
+    return root / "output" / SENT_HISTORY_NAME
 
 
 def resolve_reddit_runtime_policy(app_config: AppConfig) -> dict[str, Any]:
