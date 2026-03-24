@@ -330,13 +330,13 @@ On March 24, 2026, `America/Sao_Paulo` is `UTC-03:00`.
 That is why the workflow uses:
 
 ```yaml
-cron: "55 14 * * 1-6"
+cron: "55 20 * * 1-6"
 ```
 
 Meaning:
 
-- 14:55 UTC
-- about 11:55 BRT, to compensate for common GitHub Actions schedule delays
+- 20:55 UTC
+- about 17:55 BRT, to compensate for common GitHub Actions schedule delays
 - Monday through Saturday
 
 If time zone rules change in the future, update the cron value accordingly.
